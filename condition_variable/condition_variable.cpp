@@ -61,6 +61,12 @@ void producer(int id) {
 	consume.notify_one();
 }
 
+void read_value()
+{
+	std::this_thread::sleep_for(std::chrono::seconds(5));
+	cv.notify_one();
+}
+
 int main()
 {
 #if 0
@@ -74,7 +80,7 @@ int main()
 
 
 #endif
-#if 1
+#if 0
 	//重点中的重点：wait函数调用的时候，会阻塞线程，并且接触lck,如果通知接触wait阻塞的话，那么lck会锁定
 	//notify_one
 	std::thread consumers[10], producers[10];
@@ -89,6 +95,17 @@ int main()
 		producers[i].join();
 		consumers[i].join();
 	}
+#endif
+#if 1
+	//wait_for
+	std::thread t(read_value);
+	std::unique_lock<std::mutex> unlck(mtx);
+	while (cv.wait_for(unlck,std::chrono::seconds(1)) == std::cv_status::timeout)
+	{
+		std::cout << ".";
+	}
+	std::cout << "\n";
+	t.join();
 #endif
     std::cout << "Hello World!\n";
 	std::cin.get();
