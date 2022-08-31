@@ -67,6 +67,35 @@ void read_value()
 	cv.notify_one();
 }
 
+int condition = 0;
+bool checkCondition()
+{
+	return condition == 1;
+}
+void waits()
+{
+	std::unique_lock<std::mutex> lck(mtx);
+	std::cout << "waiting...." << std::endl;
+	cv.wait(lck, checkCondition);
+	std::cout << "finished waiting.condition:" << condition << std::endl;
+}
+void Signals()
+{
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	{
+		std::lock_guard<std::mutex> lck(mtx);
+		std::cout << "Notifying..." << std::endl;
+	}
+	cv.notify_all();
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	{
+		std::lock_guard<std::mutex> lck(mtx);
+		condition = 1;
+		std::cout << "Notifying again...." << std::endl;
+	}
+	cv.notify_all();
+}
+
 int main()
 {
 #if 0
@@ -81,6 +110,7 @@ int main()
 
 #endif
 #if 0
+	//wait 1:wait(lck);
 	//重点中的重点：wait函数调用的时候，会阻塞线程，并且接触lck,如果通知接触wait阻塞的话，那么lck会锁定
 	//notify_one
 	std::thread consumers[10], producers[10];
@@ -97,6 +127,15 @@ int main()
 	}
 #endif
 #if 1
+	//wait 2:wait(lck, Predicate pred) 当pred为false的时候会阻塞，为true的时候会接触阻塞
+	std::thread t1(waits), t2(waits), t3(waits), t4(Signals);
+	t1.join();
+	t2.join();
+	t3.join();
+	t4.join();
+
+#endif
+#if 0
 	//wait_for
 	std::thread t(read_value);
 	std::unique_lock<std::mutex> unlck(mtx);
